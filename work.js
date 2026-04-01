@@ -3,7 +3,7 @@ export default {
     const url = new URL(request.url);
     const method = request.method;
 
-    // 统一 CORS 头
+    // 统一 CORS 头（所有响应都要带）
     const corsHeaders = {
       'Access-Control-Allow-Origin': '*',
       'Access-Control-Allow-Methods': 'GET, OPTIONS',
@@ -11,20 +11,17 @@ export default {
       'Access-Control-Max-Age': '86400',
     };
 
-    // 处理预检请求
+    // 1️⃣ 处理预检请求（必须放在最前面，不校验 token）
     if (method === 'OPTIONS') {
-      return new Response(null, {
-        status: 204,
-        headers: corsHeaders,
-      });
+      return new Response(null, { status: 204, headers: corsHeaders });
     }
 
-    // 仅允许 GET 请求
+    // 2️⃣ 仅允许 GET 请求
     if (method !== 'GET') {
       return new Response('Method Not Allowed', { status: 405, headers: corsHeaders });
     }
 
-    // 校验 Token
+    // 3️⃣ 校验 Token
     const token = url.searchParams.get('token') || request.headers.get('Authorization')?.replace('Bearer ', '');
     if (token !== env.API_TOKEN) {
       return new Response('Unauthorized', { status: 401, headers: corsHeaders });

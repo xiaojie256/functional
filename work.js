@@ -1,13 +1,36 @@
 export default {
   async fetch(request, env) {
     const url = new URL(request.url);
-    const path = url.pathname;
+    const method = request.method;
+
+    // 统一 CORS 头
+    const corsHeaders = {
+      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Methods': 'GET, OPTIONS',
+      'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+      'Access-Control-Max-Age': '86400',
+    };
+
+    // 处理预检请求
+    if (method === 'OPTIONS') {
+      return new Response(null, {
+        status: 204,
+        headers: corsHeaders,
+      });
+    }
+
+    // 仅允许 GET 请求
+    if (method !== 'GET') {
+      return new Response('Method Not Allowed', { status: 405, headers: corsHeaders });
+    }
 
     // 校验 Token
     const token = url.searchParams.get('token') || request.headers.get('Authorization')?.replace('Bearer ', '');
     if (token !== env.API_TOKEN) {
-      return new Response('Unauthorized', { status: 401, headers: { 'Access-Control-Allow-Origin': '*' } });
+      return new Response('Unauthorized', { status: 401, headers: corsHeaders });
     }
+
+    const path = url.pathname;
 
     // 路由
     let filePath = '';
@@ -18,7 +41,7 @@ export default {
     } else if (path.startsWith('/images/')) {
       filePath = path.substring(1);
     } else {
-      return new Response('Not Found', { status: 404, headers: { 'Access-Control-Allow-Origin': '*' } });
+      return new Response('Not Found', { status: 404, headers: corsHeaders });
     }
 
     // 从 Gitee 获取文件
@@ -30,12 +53,12 @@ export default {
 
     const resp = await fetch(apiUrl);
     if (!resp.ok) {
-      return new Response(`Gitee API error: ${resp.status}`, { status: resp.status, headers: { 'Access-Control-Allow-Origin': '*' } });
+      return new Response(`Gitee API error: ${resp.status}`, { status: resp.status, headers: corsHeaders });
     }
 
     const data = await resp.json();
     if (!data.content) {
-      return new Response('File content missing', { status: 500, headers: { 'Access-Control-Allow-Origin': '*' } });
+      return new Response('File content missing', { status: 500, headers: corsHeaders });
     }
 
     // 解码 base64
@@ -60,7 +83,7 @@ export default {
       return new Response(bytes, {
         headers: {
           'Content-Type': mime,
-          'Access-Control-Allow-Origin': '*'
+          ...corsHeaders,
         }
       });
     } else {
@@ -68,7 +91,7 @@ export default {
       return new Response(text, {
         headers: {
           'Content-Type': 'application/json; charset=utf-8',
-          'Access-Control-Allow-Origin': '*'
+          ...corsHeaders,
         }
       });
     }

@@ -3,7 +3,6 @@ export default {
     const url = new URL(request.url);
     const method = request.method;
 
-    // 统一 CORS 头（所有响应都需要）
     const corsHeaders = {
       'Access-Control-Allow-Origin': '*',
       'Access-Control-Allow-Methods': 'GET, OPTIONS',
@@ -11,32 +10,30 @@ export default {
       'Access-Control-Max-Age': '86400',
     };
 
-    // 1. 处理 OPTIONS 预检请求（必须最先处理，不校验 token）
+    // 处理 OPTIONS 预检
     if (method === 'OPTIONS') {
       return new Response(null, { status: 204, headers: corsHeaders });
     }
 
-    // 2. 只允许 GET 请求
+    // 只允许 GET
     if (method !== 'GET') {
       return new Response('Method Not Allowed', { status: 405, headers: corsHeaders });
     }
 
-    // 3. 校验 Token
+    // Token 校验
     const token = url.searchParams.get('token') || request.headers.get('Authorization')?.replace('Bearer ', '');
     if (token !== env.API_TOKEN) {
       return new Response('Unauthorized', { status: 401, headers: corsHeaders });
     }
 
     const path = url.pathname;
-
-    // 路由：映射到 Gitee 仓库文件路径
     let filePath = '';
     if (path === '/homework.json') {
       filePath = 'homework.json';
     } else if (path === '/answer.json') {
       filePath = 'Answer.json';
     } else if (path.startsWith('/images/')) {
-      filePath = path.substring(1); // 例如 images/xxx.png
+      filePath = path.substring(1);
     } else {
       return new Response('Not Found', { status: 404, headers: corsHeaders });
     }
